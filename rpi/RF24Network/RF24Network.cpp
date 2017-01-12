@@ -34,9 +34,13 @@
 	volatile bool wasInterrupted;
 #endif
 
+uint16_t RF24NetworkHeader::next_id = 1;
+
+#if defined (RF24_LINUX)
 RF24 radio(22, 0, 32);   
 #if defined (DUAL_HEAD_RADIO)
 RF24 radio1(5, 6); 
+#endif
 #endif
 
 #if defined ENABLE_NETWORK_STATS
@@ -80,6 +84,22 @@ RF24Network::RF24Network( RF24& _radio, RF24& _radio1 ): radio(_radio), radio1(_
 }
 #endif
 /******************************************************************/
+
+void RF24Network::updateAddress(uint16_t _node_address) {
+  if (! is_valid_address(_node_address) )
+    return;
+
+  node_address = _node_address;
+
+  // Setup our address helper cache
+  setup_address();
+
+  // Open up all listening pipes
+  uint8_t i = 6;
+  while (i--){
+    radio.openReadingPipe(i,pipe_address(_node_address,i));
+  }
+}
 
 void RF24Network::begin(uint8_t _channel, uint16_t _node_address )
 {

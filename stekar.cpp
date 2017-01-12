@@ -70,7 +70,7 @@ void readPacket(packet_t *packet) {
   Serial.print(" from: "); Serial.print((*packet).header.from_node);
   Serial.print(" to: "); Serial.print((*packet).header.to_node); 
   Serial.print(" size: "); Serial.print((*packet).header.payload_length);
-  Serial.print(" next_id: "); Serial.println((*packet).header.next_id);
+  //Serial.print(" next_id: "); Serial.println((*packet).header.next_id);
   #endif
 
   network.read((*packet).header, (*packet).data, (*packet).header.payload_length);
@@ -94,7 +94,7 @@ bool writePacket(uint16_t address, unsigned char type, char* data, int length) {
   #endif
 
   network.update();
-  RF24NetworkHeader header(address, type, 1);
+  RF24NetworkHeader header(address, type);
   bool result = network.write(header, data, length);
 
   #ifdef DEBUG

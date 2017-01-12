@@ -19,6 +19,22 @@
 #include <stdint.h>
 #include "RF24Network_config.h"
 
+#if (defined (__linux) || defined (linux)) && !defined (__ARDUINO_X86__)
+  #include <stdint.h>
+  #include <stdio.h>
+  #include <time.h>
+  #include <string.h>
+  #include <sys/time.h>
+  #include <stddef.h>
+  #include <assert.h>
+  #include <map>
+  #include <utility>      // std::pair
+  #include <queue>
+
+//ATXMega
+#elif defined(XMEGA_D3)
+  #include "../../rf24lib/rf24lib/RF24.h"
+#endif
 
 
 /**
@@ -192,16 +208,15 @@ struct RF24NetworkHeader
    * <br><br>
    */
   unsigned char type; /**< <b>Type of the packet. </b> 0-127 are user-defined types, 128-255 are reserved for system */
-  
-  
+
   /**
   * During fragmentation, it carries the fragment_id, and on the last fragment
   * it carries the header_type.<br>
   */
   unsigned char reserved; /**< *Reserved for system use* */
 
-  uint16_t next_id; /**< The message ID of the next message to be sent (unused)*/
-  uint16_t msg_id;
+  static uint16_t next_id; /**< The message ID of the next message to be sent (unused)*/
+  //uint16_t msg_id;
   /**
    * Default constructor
    *
@@ -233,8 +248,7 @@ struct RF24NetworkHeader
    * user messages. Types 1-64 will not receive a network acknowledgement.
    */
 
-  RF24NetworkHeader(uint16_t _to, unsigned char _type = 0): to_node(_to), type(_type) {}
-  RF24NetworkHeader(uint16_t _to, unsigned char _type = 0, uint16_t _id = 0): to_node(_to), type(_type), next_id(_id) {}
+  RF24NetworkHeader(uint16_t _to, unsigned char _type = 0): to_node(_to), id(next_id++), type(_type) {}
   /**
    * Create debugging string
    *
@@ -357,8 +371,11 @@ public:
    *
    */
 
+#if defined (RF24_LINUX)
+  RF24Network( );
+#else
   RF24Network( RF24& _radio );
-
+#endif
   /**
    * Bring up the network using the current radio frequency/channel.
    * Calling begin brings up the network, and configures the address, which designates the location of the node within RF24Network topology.
@@ -483,8 +500,12 @@ public:
    * @param _radio The underlying radio driver instance
    * @param _radio1 The second underlying radio driver instance
    */
-   
-  RF24Network( RF24& _radio, RF24& _radio1); 
+   #if defined (RF24_LINUX)
+
+   #else
+     RF24Network( RF24& _radio, RF24& _radio1);
+   #endif
+
   
 	/**
 	* By default, multicast addresses are divided into levels. 
@@ -614,7 +635,7 @@ public:
    * @param interruptPin: The interrupt number to use (0,1) for pins two and three on Uno,Nano. More available on Mega etc.
    * @return True if sleepNode completed normally, after the specified number of cycles. False if sleep was interrupted
    */
- bool sleepNode( unsigned int cycles, int interruptPin );
+ bool sleepNode( unsigned int cycles, int interruptPin, uint8_t INTERRUPT_MODE=0); //added interrupt mode support (default 0=LOW)
 
 
   /**
@@ -778,10 +799,11 @@ public:
   
   bool logicalToPhysicalAddress(logicalToPhysicalStruct *conversionInfo);
   
-  
+  #if !defined (RF24_LINUX)
   RF24& radio; /**< Underlying radio driver, provides link/physical layers */
 #if defined (DUAL_HEAD_RADIO)
   RF24& radio1;
+#endif
 #endif
 #if defined (RF24NetworkMulticast)  
   uint8_t multicast_level;  

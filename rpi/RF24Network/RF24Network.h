@@ -215,7 +215,7 @@ struct RF24NetworkHeader
   */
   unsigned char reserved; /**< *Reserved for system use* */
 
-  uint16_t next_id; /**< The message ID of the next message to be sent (unused)*/
+  static uint16_t next_id; /**< The message ID of the next message to be sent (unused)*/
   //uint16_t msg_id;
   /**
    * Default constructor
@@ -248,8 +248,7 @@ struct RF24NetworkHeader
    * user messages. Types 1-64 will not receive a network acknowledgement.
    */
 
-  RF24NetworkHeader(uint16_t _to, unsigned char _type = 0): to_node(_to), type(_type) {}
-  RF24NetworkHeader(uint16_t _to, unsigned char _type = 0, uint16_t _id = 0): to_node(_to), type(_type), next_id(_id) {}
+  RF24NetworkHeader(uint16_t _to, unsigned char _type = 0): to_node(_to), id(next_id++), type(_type) {}
   /**
    * Create debugging string
    *
@@ -372,8 +371,11 @@ public:
    *
    */
 
+#if defined (RF24_LINUX)
   RF24Network( );
-
+#else
+  RF24Network( RF24& _radio );
+#endif
   /**
    * Bring up the network using the current radio frequency/channel.
    * Calling begin brings up the network, and configures the address, which designates the location of the node within RF24Network topology.
@@ -401,6 +403,8 @@ public:
   inline void begin(uint16_t _node_address){
 	  begin(USE_CURRENT_CHANNEL,_node_address);
   }
+
+  void updateAddress(uint16_t node_address);
 
   /**
    * Main layer loop
@@ -496,7 +500,12 @@ public:
    * @param _radio The underlying radio driver instance
    * @param _radio1 The second underlying radio driver instance
    */
-   
+   #if defined (RF24_LINUX)
+
+   #else
+     RF24Network( RF24& _radio, RF24& _radio1);
+   #endif
+
   
 	/**
 	* By default, multicast addresses are divided into levels. 
@@ -790,7 +799,12 @@ public:
   
   bool logicalToPhysicalAddress(logicalToPhysicalStruct *conversionInfo);
   
-
+  #if !defined (RF24_LINUX)
+  RF24& radio; /**< Underlying radio driver, provides link/physical layers */
+#if defined (DUAL_HEAD_RADIO)
+  RF24& radio1;
+#endif
+#endif
 #if defined (RF24NetworkMulticast)  
   uint8_t multicast_level;  
 #endif

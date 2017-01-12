@@ -49,8 +49,8 @@
     #define ENABLE_DYNAMIC_PAYLOADS
 
     /** Debug Options */
-    #define SERIAL_DEBUG
-    #define SERIAL_DEBUG_MINIMAL
+    //#define SERIAL_DEBUG
+    //#define SERIAL_DEBUG_MINIMAL
     //#define SERIAL_DEBUG_ROUTING
     //#define SERIAL_DEBUG_FRAGMENTATION
     //#define SERIAL_DEBUG_FRAGMENTATION_L2

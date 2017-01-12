@@ -10,7 +10,7 @@ var RF24NetworkHeader = Struct({
   'payload_length': 'uint8',
   'type': 'uint8',
   'reserved': 'uint8',
-  'nextId': 'uint16',
+  //'nextId': 'uint16',
   //'msgId': 'uint16'
 });
 
@@ -30,7 +30,8 @@ var rf24lib = ffi.Library('librf24network', {
   "networkAvailable": [ 'bool', [ 'pointer' ] ]
 });
 
-var RF24Network = function (address, channel = 90) {
+var RF24Network = function (address, channel) {
+  channel = channel || 90;
   console.log('starting network ...');
   this.network = rf24lib.networkCreate();
 

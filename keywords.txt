@@ -1,0 +1,7 @@
+Stekar KEYWORD1
+update KEYWORD2
+init KEYWORD3
+send KEYWORD4
+sensor KEYWORD5
+func KEYWORD6
+byte KEYWORD7

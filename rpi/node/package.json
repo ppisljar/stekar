@@ -1,0 +1,19 @@
+{
+  "name": "stekar_master",
+  "version": "0.0.1",
+  "description": "",
+  "main": "server.js",
+  "dependencies": {
+    "ffi": "^2.2.0",
+    "ref": "^1.3.3",
+    "ref-array": "^1.2.0",
+    "ref-struct": "^1.1.0"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
+  },
+  "author": "",
+  "license": "ISC"
+}

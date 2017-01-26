@@ -10,7 +10,7 @@ var RF24NetworkHeader = Struct({
   'payload_length': 'uint8',
   'type': 'uint8',
   'reserved': 'uint8',
-  //'nextId': 'uint16',
+  'nextId': 'uint16',
   //'msgId': 'uint16'
 });
 
@@ -46,27 +46,27 @@ var RF24Network = function (address, channel) {
 
 RF24Network.prototype.available = function () {
   return rf24lib.networkAvailable(this.network);
-}
+};
 
 RF24Network.prototype.update = function () {
   return rf24lib.networkUpdate(this.network);
-}
+};
 
 RF24Network.prototype.peek = function (header) {
   return rf24lib.networkPeek(this.network, header);
-}
+};
 
 RF24Network.prototype.read = function (header, data, length) {
   return rf24lib.networkRead(this.network, header, data, length);
-}
+};
 
 RF24Network.prototype.write = function (header, data, length) {
   return rf24lib.networkWrite(this.network, header, data, length);
-}
+};
 
 RF24Network.prototype.is_valid_address = function (address) {
   return rf24lib.networkIsValidAddress(this.network, address);
-}
+};
 
 RF24Network.prototype.readPacket = function () {
   var header = ref.alloc(RF24NetworkHeader);
@@ -81,7 +81,7 @@ RF24Network.prototype.readPacket = function () {
   this.read(header, data, headerData.payload_length);
 
   return { header: headerData, data: data };
-}
+};
 
 RF24Network.prototype.writePacket = function (address, type, data) {
   var header = RF24NetworkHeader();
@@ -104,7 +104,7 @@ RF24Network.prototype.writePacket = function (address, type, data) {
   var result = this.write(header.ref(), buffer, data.length);
   console.log(buffer);
   return result;
-}
+};
 
 
 
@@ -129,7 +129,7 @@ var func = function() {
     network.writePacket(0, 0, "112233445");
   }
   setTimeout(func, 100);
-}
+};
 setTimeout(func, 0);
 
 

@@ -215,8 +215,9 @@ struct RF24NetworkHeader
   */
   unsigned char reserved; /**< *Reserved for system use* */
 
+  uint16_t msg_id;
   static uint16_t next_id; /**< The message ID of the next message to be sent (unused)*/
-  //uint16_t msg_id;
+  //
   /**
    * Default constructor
    *

@@ -1,19 +1,41 @@
 {
   "name": "stekar_master",
-  "version": "0.0.1",
-  "description": "",
+  "version": "0.3.0",
+  "description": "master node for stekar",
   "main": "server.js",
   "dependencies": {
     "ffi": "^2.2.0",
+    "hapi": "^16.1.0",
+    "inert": "^4.1.0",
+    "react": "^15.4.2",
+    "react-dom": "^15.4.2",
     "ref": "^1.3.3",
     "ref-array": "^1.2.0",
     "ref-struct": "^1.1.0"
   },
-  "devDependencies": {},
+  "devDependencies": {
+    "babel-core": "^6.22.1",
+    "babel-eslint": "^7.1.1",
+    "babel-loader": "^6.2.10",
+    "babel-preset-es2015": "^6.22.0",
+    "babel-preset-react": "^6.22.0",
+    "eslint": "^3.14.1",
+    "eslint-config-airbnb": "^14.0.0",
+    "eslint-import-resolver-webpack": "^0.8.1",
+    "eslint-plugin-import": "^2.2.0",
+    "eslint-plugin-jsx-a11y": "^3.0.2",
+    "eslint-plugin-react": "^6.9.0",
+    "file-loader": "^0.9.0",
+    "react-hot-loader": "^1.3.1",
+    "webpack": "^1.14.0",
+    "webpack-dev-server": "^1.16.2"
+  },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node server.js"
+    "start": "node server/server.js",
+    "dev": "node server/server_dev.js",
+    "build": "webpack"
   },
-  "author": "",
+  "author": "Peter Pisljar",
   "license": "ISC"
 }

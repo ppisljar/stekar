@@ -28,6 +28,8 @@ uint16_t thisNodeAddress = 00;     // Address of our node
 
 struct packet_t {
   RF24NetworkHeader header;
+  uint16_t data_length;
+  uint16_t packet_id;
   char data[257];
 };
 
@@ -60,28 +62,41 @@ enum PACKET_TYPE : unsigned char {
 
 void readPacket(packet_t *packet) {
   #ifdef DEBUG 
-  Serial.println("DEBUG: reading packet: "); 
+  Serial.print("\r\nDEBUG: reading packet: ");
   #endif
 
-  network.peek((*packet).header);
+  uint16_t length = network.peek((*packet).header);
 
   #ifdef DEBUG
   Serial.print(" type: "); Serial.print((*packet).header.type);
   Serial.print(" from: "); Serial.print((*packet).header.from_node);
   Serial.print(" to: "); Serial.print((*packet).header.to_node); 
-  Serial.print(" size: "); Serial.print((*packet).header.payload_length);
-  //Serial.print(" next_id: "); Serial.println((*packet).header.next_id);
+  Serial.print(" size: "); Serial.println(length);
   #endif
 
-  network.read((*packet).header, (*packet).data, (*packet).header.payload_length);
-  (*packet).data[(*packet).header.payload_length] = 0;
+  network.read((*packet).header, &(*packet).packet_id, length);
+  (*packet).data[(*packet).data_length - 1] = 0;
+  (*packet).data_length = length - 2;
 
-  #ifdef DEBUG 
-  Serial.print("DEBUG: payload: "); Serial.write((*packet).data, (*packet).header.payload_length); Serial.print("\r\n");
+  #ifdef DEBUG
+  Serial.print("DEBUG: packet_id: "); Serial.print((*packet).packet_id);
+  Serial.print(" payload_length: "); Serial.println((*packet).data_length);
+  Serial.print("DEBUG: payload: "); Serial.write((*packet).data, (*packet).data_length); Serial.print("\r\n");
   #endif
 }
 
-bool writePacket(uint16_t address, unsigned char type, char* data, int length) {
+bool writePacket(uint16_t address, unsigned char type, char* data, uint16_t length, uint16_t packet_id = 0) {
+  //char* data_to_send = new char[length + 2];
+  char data_to_send[64];
+  if (length + 2 > 64) {
+    #ifdef DEBUG
+     Serial.print("DEBUG: packet is to big to be sent: "); Serial.println(length);
+    #endif
+    return;
+  }
+  memcpy(data_to_send, &packet_id, 2);
+  memcpy(data_to_send+2, data, length);
+
   #ifdef DEBUG
   Serial.print("DEBUG: sending packet: ");
   Serial.print(" type: "); Serial.print(type);
@@ -95,7 +110,7 @@ bool writePacket(uint16_t address, unsigned char type, char* data, int length) {
 
   network.update();
   RF24NetworkHeader header(address, type);
-  bool result = network.write(header, data, length);
+  bool result = network.write(header, data_to_send, length+2);
 
   #ifdef DEBUG
     Serial.print("DEBUG: result: "); Serial.println(result);
@@ -202,33 +217,37 @@ uint16_t reroute() {
   return discover();
 }
 
-void Stekar::printStatus(uint16_t address) {
-  char data[256];
+void Stekar::printStatus(uint16_t address, uint16_t packet_id) {
+  char data[32];
   char num[10];
-  strcpy(data, "");
+
   for (int i = 0; i < 8; i++) {
+    strcpy(data, "");
     strcat(data, itoa(i, num, 10));
     strcat(data, "-");
     strcat(data, func[i].name);
     strcat(data, "\r\n");
+    writePacket(address, PACKET_TYPE::REPLY, data, strlen(data) + 1, packet_id);
   }
-  writePacket(address, PACKET_TYPE::REPLY, data, strlen(data) + 1);
-  strcpy(data, "");
+
   for (int i = 0; i < 8; i++) {
+    strcpy(data, "");
     strcat(data, itoa(i, num, 10));
     strcat(data, "-");
     strcat(data, sensor[i].name);
     strcat(data, "\r\n");
+    writePacket(address, PACKET_TYPE::REPLY, data, strlen(data) + 1, packet_id);
   }
-  writePacket(address, PACKET_TYPE::REPLY, data, strlen(data) + 1);
-  strcpy(data, "");
+
+
   for (int i = 0; i < 8; i++) {
+    strcpy(data, "");
     strcat(data, itoa(i, num, 10));
     strcat(data, "-");
     strcat(data, byte[i].name);
     strcat(data, "\r\n");
+    writePacket(address, PACKET_TYPE::REPLY, data, strlen(data) + 1, packet_id);
   }
-  writePacket(address, PACKET_TYPE::REPLY, data, strlen(data) + 1);
 }
 
 void(* resetFunc) (void) = 0; //declare reset function @ address 0
@@ -330,7 +349,7 @@ void Stekar::update(void){
     readPacket(&packet);
     Serial.print(" type: "); Serial.print(packet.header.type);
     Serial.print(" from: "); Serial.print(packet.header.from_node);
-    Serial.print(" size: "); Serial.println(packet.header.payload_length);
+    Serial.print(" size: "); Serial.println(packet.data_length);
     switch (packet.header.type) {
       // we received a reponse to issued command
       case PACKET_TYPE::REPLY:
@@ -367,7 +386,7 @@ void Stekar::update(void){
         }
         break;
       case PACKET_TYPE::STATUS:
-        printStatus(packet.header.from_node);
+        printStatus(packet.header.from_node, packet.packet_id);
         break;
       // return sensors values to parent
       case PACKET_TYPE::DATA:
@@ -377,16 +396,16 @@ void Stekar::update(void){
         for (int i = 0; i < 8; i++) {
           intArray[i] = *sensor[i].var; 
         }
-        writePacket(packet.header.from_node, PACKET_TYPE::REPLY, (char*)intArray, sizeof(intArray));
+        writePacket(packet.header.from_node, PACKET_TYPE::REPLY, (char*)intArray, sizeof(intArray), packet.packet_id);
         break;
       case PACKET_TYPE::BYTES:
         for (int i = 0; i < sizeof(bytesArray); i++) {
           bytesArray[i] = *byte[i].var; 
         }
-        writePacket(packet.header.from_node, PACKET_TYPE::REPLY, bytesArray, sizeof(bytesArray));
+        writePacket(packet.header.from_node, PACKET_TYPE::REPLY, bytesArray, sizeof(bytesArray), packet.packet_id);
         break;
       case PACKET_TYPE::FLAGS:
-        writePacket(packet.header.from_node, PACKET_TYPE::REPLY, (char*)byte[8].var, 1);
+        writePacket(packet.header.from_node, PACKET_TYPE::REPLY, (char*)byte[8].var, 1, packet.packet_id);
         break;
       case PACKET_TYPE::WRITE_BYTE:
         if (packet.data[0] < 8) {
@@ -420,7 +439,7 @@ void Stekar::update(void){
         break;
       case PACKET_TYPE::COMMAND:
         result = (*func[packet.data[0]].func)(packet.data[1], packet.data[2]);
-        writePacket(packet.header.from_node, PACKET_TYPE::REPLY, &result, 1);
+        writePacket(packet.header.from_node, PACKET_TYPE::REPLY, &result, 1, packet.packet_id);
         break;
       case PACKET_TYPE::SET_ENCRYPTION_KEY:
         //encryptionKey = packet.data[0] << 24 & packet.data[1] << 16 & packet.data[2] << 8 & packet.data[3];
@@ -443,7 +462,7 @@ void Stekar::update(void){
         bytesArray[1] = 0xff;
         bytesArray[2] = 0;
         bytesArray[3] = freeSlaveAddress;
-        writePacket(packet.header.from_node, PACKET_TYPE::NEW_NODE_REPLY, bytesArray, 4);
+        writePacket(packet.header.from_node, PACKET_TYPE::NEW_NODE_REPLY, bytesArray, 4, packet.packet_id);
         break;
       case PACKET_TYPE::MOVED_NODE:
         break;

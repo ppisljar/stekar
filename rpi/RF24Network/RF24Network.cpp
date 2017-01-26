@@ -6,6 +6,9 @@
  version 2 as published by the Free Software Foundation.
  */
 
+#define headerSize 10
+#define headerFullSize 12
+
 #include "RF24Network_config.h"
 
  #if defined (RF24_LINUX)
@@ -185,7 +188,7 @@ uint8_t RF24Network::update(void)
 
     #if defined (ENABLE_DYNAMIC_PAYLOADS) && !defined (XMEGA_D3)
       if( (frame_size = radio.getDynamicPayloadSize() ) < sizeof(RF24NetworkHeader)){
-	    delay(10);
+	    delay(11);
 		continue;
 	  }
     #else
@@ -227,7 +230,7 @@ uint8_t RF24Network::update(void)
 				if(requester != node_address){
 					header->to_node = requester;
 					write(header->to_node,USER_TX_TO_PHYSICAL_ADDRESS);
-					delay(10);
+					delay(11);
                     write(header->to_node,USER_TX_TO_PHYSICAL_ADDRESS);
 					//printf("Fwd add response to 0%o\n",requester);
 					continue;
@@ -487,7 +490,7 @@ uint8_t RF24Network::enqueue(RF24NetworkHeader* header)
           radio.stopListening();
         }
   		  
-		memcpy(&frag_queue,&frame_buffer,8);
+		memcpy(&frag_queue,&frame_buffer, headerSize);
 		memcpy(frag_queue.message_buffer,frame_buffer+sizeof(RF24NetworkHeader),message_size);
 		
 //IF_SERIAL_DEBUG_FRAGMENTATION( Serial.print(F("queue first, total frags ")); Serial.println(header->reserved); );
@@ -541,11 +544,11 @@ IF_SERIAL_DEBUG_FRAGMENTATION_L2(for(int i=0; i< frag_queue.message_size;i++){ S
 		#endif
             
         if(MAX_PAYLOAD_SIZE - (next_frame-frame_queue) >= frag_queue.message_size){
-          memcpy(next_frame,&frag_queue,10);
-          memcpy(next_frame+10,frag_queue.message_buffer,frag_queue.message_size);
-          next_frame += (10+frag_queue.message_size);
+          memcpy(next_frame,&frag_queue, headerFullSize);
+          memcpy(next_frame+headerFullSize,frag_queue.message_buffer,frag_queue.message_size);
+          next_frame += (headerFullSize+frag_queue.message_size);
           #if !defined(ARDUINO_ARCH_AVR)
-          if(uint8_t padding = (frag_queue.message_size+10)%4){
+          if(uint8_t padding = (frag_queue.message_size+headerFullSize)%4){
             next_frame += 4 - padding;
           }
           #endif
@@ -567,7 +570,7 @@ IF_SERIAL_DEBUG_FRAGMENTATION_L2(for(int i=0; i< frag_queue.message_size;i++){ S
 #if !defined( DISABLE_FRAGMENTATION )
 
 	if(header->type == EXTERNAL_DATA_TYPE){
-		memcpy(&frag_queue,&frame_buffer,8);
+		memcpy(&frag_queue,&frame_buffer,headerSize);
 		frag_queue.message_buffer = frame_buffer+sizeof(RF24NetworkHeader);
 		frag_queue.message_size = message_size;
 		return 2;
@@ -578,15 +581,15 @@ IF_SERIAL_DEBUG_FRAGMENTATION_L2(for(int i=0; i< frag_queue.message_size;i++){ S
  }
 #else
   if(message_size + (next_frame-frame_queue) <= MAIN_BUFFER_SIZE){
-	memcpy(next_frame,&frame_buffer,8);
-    memcpy(next_frame+8,&message_size,2);
-	memcpy(next_frame+10,frame_buffer+8,message_size);
+	memcpy(next_frame,&frame_buffer,headerSize);
+    memcpy(next_frame+headerSize,&message_size,2);
+	memcpy(next_frame+headerFullSize,frame_buffer+headerSize,message_size);
     
 	//IF_SERIAL_DEBUG_FRAGMENTATION( for(int i=0; i<message_size;i++){ Serial.print(next_frame[i],HEX); Serial.print(" : "); } Serial.println(""); );
     
-	next_frame += (message_size + 10);
+	next_frame += (message_size + headerFullSize);
     #if !defined(ARDUINO_ARCH_AVR)
-    if(uint8_t padding = (message_size+10)%4){
+    if(uint8_t padding = (message_size+headerFullSize)%4){
       next_frame += 4 - padding;
     }
     #endif
@@ -642,7 +645,7 @@ uint16_t RF24Network::peek(RF24NetworkHeader& header)
 	RF24NetworkFrame *frame = (RF24NetworkFrame*)(frame_queue);
 	memcpy(&header,&frame->header,sizeof(RF24NetworkHeader));
     uint16_t msg_size;
-    memcpy(&msg_size,frame_queue+8,2);
+    memcpy(&msg_size,frame_queue+headerSize,2);
     return msg_size;
   #endif
   }
@@ -675,28 +678,28 @@ uint16_t RF24Network::read(RF24NetworkHeader& header,void* message, uint16_t max
   if ( available() )
   {
     
-	memcpy(&header,frame_queue,8);
-    memcpy(&bufsize,frame_queue+8,2);
+	memcpy(&header,frame_queue,headerSize);
+    memcpy(&bufsize,frame_queue+headerSize,2);
 
     if (maxlen > 0)
     {		
 		maxlen = rf24_min(maxlen,bufsize);
-		memcpy(message,frame_queue+10,maxlen);
+		memcpy(message,frame_queue+headerFullSize,maxlen);
 	    IF_SERIAL_DEBUG(printf("%lu: NET message size %d\n",millis(),bufsize););
 
 	
 	IF_SERIAL_DEBUG( uint16_t len = maxlen; printf_P(PSTR("%lu: NET r message "),millis());const uint8_t* charPtr = reinterpret_cast<const uint8_t*>(message);while(len--){ printf("%02x ",charPtr[len]);} printf_P(PSTR("\n\r") ) );      
 	  
     }
-	next_frame-=bufsize+10;
+	next_frame-=bufsize+headerFullSize;
     uint8_t padding = 0;
     #if !defined(ARDUINO_ARCH_AVR)
-    if( (padding = (bufsize+10)%4) ){
+    if( (padding = (bufsize+headerFullSize)%4) ){
       padding = 4-padding;
       next_frame -= padding;
     }
     #endif
-    memmove(frame_queue,frame_queue+bufsize+10+padding,sizeof(frame_queue)- bufsize);
+    memmove(frame_queue,frame_queue+bufsize+headerFullSize+padding,sizeof(frame_queue)- bufsize);
 	//IF_SERIAL_DEBUG(printf_P(PSTR("%lu: NET Received %s\n\r"),millis(),header.toString()));
   }
 #endif
@@ -721,6 +724,7 @@ bool RF24Network::write(RF24NetworkHeader& header,const void* message, uint16_t 
 /******************************************************************/
 bool RF24Network::write(RF24NetworkHeader& header,const void* message, uint16_t len, uint16_t writeDirect){
     header.payload_length = len;
+    header.msg_id = 0;
     //Allows time for requests (RF24Mesh) to get through between failed writes on busy nodes
     while(millis()-txTime < 25){ if(update() > 127){break;} }
 	delayMicroseconds(200);

@@ -1,0 +1,91 @@
+- node:
+.-- pregledat kodo, poenostavt protokol			0.3
+.-- kk vemo kva je odgovor na kej ? 			0.3
+-- auto discovery da bo delal na vseh nivojih		0.4
+-- programiranje over the air				0.5
+-- network funkcije na bootloader			0.6
+-- mogoce vse koda v bootloader ?			0.7
+-- enkripcija						0.8
+-- basic master (teensy, mega, ...)			0.9
+-- makefile, dokumentacija, repository, fajn stestirano 1.0
+
+- master:
+.-- lavfa nrf komunikacija na raspberyju			0.1
+.-- nrf funkcije za komplet komunikacijo z node-om	0.2
+.-- api ki izpostav nrf komunikacijo ostalim procesom	0.3
+-- baza naprav in autodiscovery na vseh nivojih		0.4
+-- programiranje over the air				0.5
+-- osnovni pregled naprav, izvajanje funkcij, framework	0.6
+-- osnovna aplikacija, kjer lohk vse stelas, api	0.7
+-- enkripcija						0.8
+-- lepa aplikacija, vsa potrebna (min) funkcjonalnost	0.9
+-- build, dokumentacija, repository, fajn stestirano	1.0
+
+- cloud master
+-- osnovna verzija kjer ti pobira podatke iz masterjev	0.1
+-- konfiguracija					0.2
+-- minimalna verzija					0.3
+-- build, dokumentacija, repository			0.4
+
+
+#3caed2
+#e8488b
+
+
+
+
+
+
+#19a8e0
+#ef5098
+#fdd10c
+#0979a1
+#92c83e
+#25bbb1
+
+
+
+
+var ref = require('ref');
+var ffi = require('ffi');
+var Struct = require('ref-struct');
+
+var libRF24 = ffi.Library('librf24', {
+  "RF24": [ 'void', [ int, int ] ]
+});
+
+var RF24NetworkHeader = Struct({
+  'from_node': 'uint16',
+  'to_node': 'uint16',
+  'id': 'uint8',
+  'payoad_length': 'uint8',
+  'type': 'char',
+  'reserved': 'char',
+  'next_id': 'uint16'
+});
+
+var bufferPtr = ref.refType('char');
+var headerPtr = ref.refType(RF24NetworkHeader);
+
+var libRF24Network = ffi.Library('librf24network', {
+  "RF24Network": [ 'void', [ 'pointer' ] ],
+  "RF24Network": [ 'void', [ 'pointer', 'pointer' ] ],
+  "begin": [ 'void', [ 'uint8', 'uint16' ] ],
+  "update": [ 'uint16', [] ],
+  "peek": [ 'uint16', [ headerPtr ] ],
+  "read": [ 'uint16', [ headerPtr, bufferPtr, 'uint16' ] ],
+  "write" [ 'uint16', [ headerPtr, bufferPtr, 'uint16' ] ],
+  "updateAddress": [ 'void', [ 'uint16' ] ],
+  "is_valid_address", [ 'bool', [ 'uint16' ] ],
+  "available": [ 'bool', [] ]
+});
+
+
+
+ TO  |FROM |ID|L |T |R | nId | mId | payload .....
+01 00 00 00 17 09 00 00 FF FF FF FF 31 31 32 32 33 33 34 34 35 <--- OK
+01 00 00 00 FF 09 00 FF B0 0D BC 01 31 31 32 32 33 33 34 34 35 <--- OK
+01 00 00 00 25 09 00 00 7E 00 00 00 31 31 32 32 33 33 34 34 35 <--- not OK
+
+
+

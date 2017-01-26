@@ -37,7 +37,7 @@ class Stekar
 	byte_setting_t byte[9] = {{NULL, NULL}, {NULL, NULL}, {NULL, NULL}, {NULL, NULL}, {NULL, NULL}, {NULL, NULL}, {NULL, NULL}, {NULL, NULL}, {(char*)"flags", 0}};
 
   private:
-  	void printStatus(uint16_t address);
+  	void printStatus(uint16_t address, uint16_t packet_id);
     int _pin;
 };
 

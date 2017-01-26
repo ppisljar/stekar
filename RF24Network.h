@@ -199,8 +199,8 @@ struct RF24NetworkHeader
 {
   uint16_t from_node; /**< Logical address where the message was generated */
   uint16_t to_node; /**< Logical address where the message is going */
-  uint8_t id; /**< Sequential message ID, incremented every time a new frame is constructed */
-  uint8_t payload_length; /* length of payload */
+  uint16_t id; /**< Sequential message ID, incremented every time a new frame is constructed */
+  //uint8_t payload_length; /* length of payload */
   /**
    * Message Types:
    * User message types 1 through 64 will NOT be acknowledged by the network, while message types 65 through 127 will receive a network ACK.  
@@ -215,8 +215,9 @@ struct RF24NetworkHeader
   */
   unsigned char reserved; /**< *Reserved for system use* */
 
-  static uint16_t next_id; /**< The message ID of the next message to be sent (unused)*/
   //uint16_t msg_id;
+  static uint16_t next_id; /**< The message ID of the next message to be sent (unused)*/
+  //
   /**
    * Default constructor
    *
